@@ -28,12 +28,14 @@ const bookList = async function ( req, res) {
  }
  const getXInrBooks = async function ( req, res ) {
 
-    let books = await BookModel.find({ $or : [{ price:{indianPrice: "500INR"}} ,{ price:{indianPrice : {$eq : "100INR"}} },{ price:{indianPrice : {$eq : "200INR"} }}]})
+     let books = await BookModel.find( { "prices.indianPrice": {$in : ["100INR","200INR","500INR"]}})
+     //another method
+    //  let books = await BookModel.find({ $or : [{ "prices.indianPrice":{ $eq : "100INR"}} ,{ "prices.indianPrice" : {$eq : "200INR"} },{ "prices.indianPrice" : {$eq : "500INR"} }]})
     res.send( { msg : books })
  }
 const getRandomBooks = async function ( req , res ) {
     
-    let books = await BookModel.find( { $or : [ { stocksAvailable : true }, { totalPages : { $gt : 300 }}]} )
+    let books = await BookModel.find( { $or : [ { stocksAvailable : true }, { totalPages : { $gt : 500 }}]} )
      res.send( { msg:books } )
 }
  //const getParticularBooks = async function
