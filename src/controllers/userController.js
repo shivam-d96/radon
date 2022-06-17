@@ -5,21 +5,25 @@ const createUser = async function (abcd, xyz) {
   //You can name the req, res objects anything.
   //but the first parameter is always the request 
   //the second parameter is always the response
-  let data = abcd.body;
+try{   let data = abcd.body;
   if( Object.keys(data).length === 0 ) {
-    xyz.status(400).send
+    xyz.status(400).send({msg: "there is no data in body"})
   }
-  let savedData = await userModel.create(data);
-  xyz.status(200).send({ msg: savedData });
+   savedData = await userModel.create(data);
+  xyz.status(201).send({ msg: savedData });
+}catch(err) {
+     xyz.status(500).send({error : err.message})
+}
 };
 
 const loginUser = async function (req, res) {
-  let userName = req.body.emailId;
+  try 
+  {let userName = req.body.emailId;
   let password = req.body.password;
 
   let user = await userModel.findOne({ emailId: userName, password: password });
   if (!user)
-    return res.send({
+    return res.status(401).send({
       status: false,
       msg: "username or the password is not corerct",
     });
@@ -39,7 +43,10 @@ const loginUser = async function (req, res) {
     "functionup-radon"
   );
   res.setHeader("x-auth-token", token);
-  res.send({ status: true, data: token });
+  res.status(200).send({ status: true, data: token });
+} catch (err) {
+  res.status(500).send({ err : err.message})
+}
 };
 
 const getUserData = async function (req, res) {
@@ -60,12 +67,15 @@ const getUserData = async function (req, res) {
   // if (!decodedToken)
   //   return res.send({ status: false, msg: "token is invalid" });
 
-  let userId = req.params.userId;
+  try {let userId = req.params.userId;
   let userDetails = await userModel.findById(userId);
   if (!userDetails)
-    return res.send({ status: false, msg: "No such user exists" });
+    return res.status(401).send({ status: false, msg: "No such user exists" });
 
-  res.send({ status: true, data: userDetails });
+  res.status(200).send({ status: true, data: userDetails });
+} catch(err) {
+  res.status(500).send({ status: false , msg : err })
+}
 };
 
 const updateUser = async function (req, res) {
@@ -80,58 +90,72 @@ const updateUser = async function (req, res) {
   // if (!user) {
   //   return res.send("No such user exists");
   // }
-  let userId = req.params.userId;
+ try {  let userId = req.params.userId;
+
   let userData = req.body;
+
+  if ( Object.keys(userData) === 0){
+    res.status(400).send("object is empty")
+  }
+
   let updatedUser = await userModel.findOneAndUpdate({ _id: userId }, userData,{new:true});
-  res.send({ status: updatedUser, data: updatedUser });
+  res.status(200).send({ status: true, data: updatedUser });
+}catch(err) {
+  res.status(500).send({ status:false , msg : err })
+}
+
 };
 
 const deleteUser = async function(req, res) {    
-  let userId = req.params.userId
+ try 
+ { let userId = req.params.userId
   let user = await userModel.findById(userId)
   if(!user) {
-      return res.send({status: false, message: "no such user exists"})
+      return res.status(401).send({status: false, message: "no such user exists"})
   }
   let updatedUser = await userModel.findOneAndUpdate({_id: userId}, {$set :{isDeleted: true}}, {new: true})
   console.log(updatedUser)
-  res.send({status: true, data: updatedUser})
+  res.status(200).send({status: true, data: updatedUser})
+}catch(err) {
+  res.status(500).send({status :false , msg : err.message})
+}
 }
 
-const postMessage = async function (req, res) {
-    let message = req.body.message
-    // Check if the token is present
-    // Check if the token present is a valid token
-    // Return a different error message in both these cases
-    let token = req.headers["x-auth-token"]
+// const postMessage = async function (req, res) {
+//     let message = req.body.message
+//     // Check if the token is present
+//     // Check if the token present is a valid token
+//     // Return a different error message in both these cases
+//     let token = req.headers["x-auth-token"]
   
-    if(!token) return res.send({status: false, msg: "token must be present in the request header"})
-    let decodedToken = jwt.verify(token, 'functionup-radon')
+//     if(!token) return res.send({status: false, msg: "token must be present in the request header"})
+//     let decodedToken = jwt.verify(token, 'functionup-radon')
 
-    if(!decodedToken) return res.send({status: false, msg:"token is not valid"})
+//     if(!decodedToken) return res.send({status: false, msg:"token is not valid"})
     
-    //userId for which the request is made. In this case message to be posted.
-    let userToBeModified = req.params.userId
-    //userId for the logged-in user
-    let userLoggedIn = decodedToken.userId
+//     //userId for which the request is made. In this case message to be posted.
+//     let userToBeModified = req.params.userId
+//     //userId for the logged-in user
+//     let userLoggedIn = decodedToken.userId
 
-    //userId comparision to check if the logged-in user is requesting for their own data
-    if(userToBeModified != userLoggedIn) return res.send({status: false, msg: 'User logged is not allowed to modify the requested users data'})
+//     //userId comparision to check if the logged-in user is requesting for their own data
+//     if(userToBeModified != userLoggedIn) return res.send({status: false, msg: 'User logged is not allowed to modify the requested users data'})
 
-    let user = await userModel.findById(req.params.userId)
-    if(!user) return res.send({status: false, msg: 'No such user exists'})
+//     let user = await userModel.findById(req.params.userId)
+//     if(!user) return res.send({status: false, msg: 'No such user exists'})
     
-    let updatedPosts = user.posts
-    //add the message to user's posts
-    updatedPosts.push(message)
-    let updatedUser = await userModel.findOneAndUpdate({_id: user._id},{posts: updatedPosts}, {new: true})
+//     let updatedPosts = user.posts
+//     //add the message to user's posts
+//     updatedPosts.push(message)
+//     let updatedUser = await userModel.findOneAndUpdate({_id: user._id},{posts: updatedPosts}, {new: true})
 
-    //return the updated user document
-    return res.send({status: true, data: updatedUser})
-}
+//     //return the updated user document
+//     return res.send({status: true, data: updatedUser})
+// }
 
 module.exports.createUser = createUser;
 module.exports.getUserData = getUserData;
 module.exports.updateUser = updateUser;
 module.exports.loginUser = loginUser;
-module.exports.postMessage = postMessage
+//module.exports.postMessage = postMessage
 module.exports.deleteUser = deleteUser;
